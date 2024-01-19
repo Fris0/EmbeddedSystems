@@ -46,14 +46,10 @@ def run_measurement():
         # Display the frame
         cv2.imshow('frame', skewed_image)
 
-        # Break the loop with keypress 'q'
-        if cv2.waitKey(1) == ord('q'):
-            break
-
     # Release the capture
     cap.release()
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    
+    run_measurement()    
