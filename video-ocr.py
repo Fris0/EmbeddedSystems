@@ -14,6 +14,7 @@ def run_measurement():
     tesseract_config = r'--psm 3'
     start_time = datetime.datetime.now()
 
+    measurements = []
     while ((datetime.datetime.now() - start_time).total_seconds() < 4):
         # Read in the frame.
         ret, frame = cap.read()
@@ -34,11 +35,12 @@ def run_measurement():
         skewed_image = cv2.warpAffine(roi, skew_matrix, (roi.shape[1], roi.shape[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
 
         # Crop the image to the appropiate size.
-        skewed_image = gaussian_filter(skewed_image[680:740, 700:825], sigma = 2)
+        skewed_image = gaussian_filter(skewed_image, sigma = 2)[685:740, 710:830]
 
         text = pytesseract.image_to_string(skewed_image)
         try:
             result = float(text)
+            measurements.append(result)
             print(result)
         except:
             pass
@@ -46,10 +48,14 @@ def run_measurement():
         # Display the frame
         cv2.imshow('frame', skewed_image)
 
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
     # Release the capture
     cap.release()
     cv2.destroyAllWindows()
+    return(np.mean(measurements))
 
 
 if __name__ == "__main__":
-    run_measurement()
+    print(run_measurement())
