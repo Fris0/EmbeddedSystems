@@ -1,37 +1,59 @@
+import numpy as np
 import cv2
 import pytesseract
+import datetime
+import time
+import subprocess
 from PIL import Image
+from scipy.ndimage import gaussian_filter
 
-cap = cv2.VideoCapture(0)
 
-if not cap.isOpened():
-    print("Cannot open camera")
-    exit()
+def run_measurement():
+    cap = cv2.VideoCapture(0)
 
-# cap.set(cv2.CAP_PROP_FPS, 30)
-tesseract_config = r'--psm 4'
+    tesseract_config = r'--psm 3'
+    start_time = datetime.datetime.now()
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("Can't receive frame (stream end?). Exiting ...")
-        break
+    while ((datetime.datetime.now() - start_time).total_seconds() < 4):
+        # Read in the frame.
+        ret, frame = cap.read()
 
-    # Process the frame
+        # Frame pre-processing.
+        gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV)
+        contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    frame_im = Image.fromarray(frame)
+        largest_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(largest_contour)
+        roi = frame[y:y+h, x:x+w]
 
-    text = pytesseract.image_to_data(frame_im)
-    print(text)
+        # Calculate the skew matrix.
+        skew_matrix = np.float32([[1, -0.4, 0], [0, 1, 0]])  # -0.4 is the skew-factor.
 
-    # Display the frame
-    cv2.imshow('frame', frame)
+        # Apply the skew transformation.
+        skewed_image = cv2.warpAffine(roi, skew_matrix, (roi.shape[1], roi.shape[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
 
-    # Break the loop with keypress 'q'
-    if cv2.waitKey(1) == ord('q'):
-        break
+        # Crop the image to the appropiate size.
+        skewed_image = gaussian_filter(skewed_image[680:740, 700:825], sigma = 2)
 
-# Release the capture
-cap.release()
-cv2.destroyAllWindows()
+        text = pytesseract.image_to_string(skewed_image)
+        try:
+            result = float(text)
+            print(result)
+        except:
+            pass
+
+        # Display the frame
+        cv2.imshow('frame', skewed_image)
+
+        # Break the loop with keypress 'q'
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+    # Release the capture
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    
