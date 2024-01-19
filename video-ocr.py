@@ -7,7 +7,7 @@ import subprocess
 from PIL import Image
 from scipy.ndimage import gaussian_filter
 import itertools
-
+import pexpect
 
 def run_measurement():
     cap = cv2.VideoCapture(0)
@@ -72,33 +72,29 @@ def generate_order():
 
     return ['-'.join(order) for order in order_combinations]
 
+
 def run_command(first_partitioning, second_partitioning, order):
     command = f"adb shell 'export LD_LIBRARY_PATH=/data/local/Working_dir; " \
               f"/data/local/Working_dir/graph_alexnet_all_pipe_sync --threads=4 " \
               f"--threads2=2 --n=100 --total_cores=6 --partition_point={first_partitioning} " \
               f"--partition_point2={second_partitioning} --order=={order}'"
-    
+
     print(command)
 
-    subproc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, 
-                               stderr=subprocess.PIPE, text=True)
+    subproc = pexpect.spawn(command, timeout=None, encoding='utf-8')
 
     while True:
-        output = subproc.stdout.readline()
-        err = subproc.stderr.readline()
+        try:
+            index = subproc.expect([pexpect.EOF, pexpect.TIMEOUT, "Running Inference"], timeout=None)
+        except KeyboardInterrupt:
+            sys.exit(0)
 
-        print(output)
-
-        if output == '' and subproc.poll() is not None:
+        if index == 0:  # EOF
             break
-        
-        if "Running Inference" in err:
+        elif index == 2:  # "Running Inference"
             print("Running Inference")
 
-    subproc.stderr.close()
-    subproc.stdout.close()
-    subproc.wait()
-    
+    subproc.close()
 
     return command
 
@@ -120,5 +116,4 @@ if __name__ == "__main__":
         # If run inference, then start run_measurement()
 
         # Store the results sufficiently for later processing.
-
-        # print(run_measurement())
+        #print(run_measurement())
