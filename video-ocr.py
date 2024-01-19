@@ -90,6 +90,7 @@ def run_command(first_partitioning, second_partitioning, order):
             sys.exit(0)
 
         if index == 0:  # EOF
+            print(subproc.before)
             break
         elif index == 2:  # "Running Inference"
             print("Running Inference")
@@ -103,7 +104,7 @@ if __name__ == "__main__":
 
     order_combinations = generate_order()
 
-    run_command(6, 6, 'B-L-G')
+    run_command(3, 6, 'B-L-G')
 
     # Execute commands for all combinations of partitioning points 
     # and hardware orders.
