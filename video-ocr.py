@@ -6,6 +6,7 @@ import time
 import subprocess
 from PIL import Image
 from scipy.ndimage import gaussian_filter
+import itertools
 
 
 def run_measurement():
@@ -57,15 +58,67 @@ def run_measurement():
     return(np.mean(measurements))
 
 
+def generate_partitions():
+    total_layers = 8
+    for i in range(1, total_layers + 1):
+        for j in range(i, total_layers + 1):
+            yield (i, j)
+
+
+def generate_order():
+    hardware = ['B', 'L', 'G']
+
+    order_combinations = list(itertools.permutations(hardware))
+
+    return ['-'.join(order) for order in order_combinations]
+
+def run_command(first_partitioning, second_partitioning, order):
+    command = f"adb shell 'export LD_LIBRARY_PATH=/data/local/Working_dir; " \
+              f"/data/local/Working_dir/graph_alexnet_all_pipe_sync --threads=4 " \
+              f"--threads2=2 --n=100 --total_cores=6 --partition_point={first_partitioning} " \
+              f"--partition_point2={second_partitioning} --order=={order}'"
+    
+    print(command)
+
+    subproc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, 
+                               stderr=subprocess.PIPE, text=True)
+
+    while True:
+        output = subproc.stdout.readline()
+        err = subproc.stderr.readline()
+
+        print(output)
+
+        if output == '' and subproc.poll() is not None:
+            break
+        
+        if "Running Inference" in err:
+            print("Running Inference")
+
+    subproc.stderr.close()
+    subproc.stdout.close()
+    subproc.wait()
+    
+
+    return command
+
 if __name__ == "__main__":
     # All commands that need to be run in the shell here.
 
-    # For loop for all commands
+    order_combinations = generate_order()
 
-      # While loop inside waiting for "Running Inference"
+    run_command(6, 6, 'B-L-G')
 
-      # If run inference, then start run_measurement()
+    # Execute commands for all combinations of partitioning points 
+    # and hardware orders.
+    for first_point, second_point in generate_partitions():
+        for order in order_combinations:
+            pass
 
-      # Store the results sufficiently for later processing.
+        # While loop inside waiting for "Running Inference"
 
-      print(run_measurement())
+        # If run inference, then start run_measurement()
+
+        # Store the results sufficiently for later processing.
+
+        # print(run_measurement())
