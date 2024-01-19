@@ -58,4 +58,14 @@ def run_measurement():
 
 
 if __name__ == "__main__":
-    print(run_measurement())
+    # All commands that need to be run in the shell here.
+
+    # For loop for all commands
+
+      # While loop inside waiting for "Running Inference"
+
+      # If run inference, then start run_measurement()
+
+      # Store the results sufficiently for later processing.
+
+      print(run_measurement())
