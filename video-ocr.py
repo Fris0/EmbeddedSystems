@@ -52,4 +52,4 @@ def run_measurement():
 
 
 if __name__ == "__main__":
-    run_measurement()    
+    run_measurement()
