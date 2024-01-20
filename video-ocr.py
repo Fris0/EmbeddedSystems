@@ -2,15 +2,15 @@ import numpy as np
 import cv2
 import pytesseract
 import datetime
-import time
-import subprocess
-from PIL import Image
 from scipy.ndimage import gaussian_filter
 import itertools
 import pexpect
+import re
+import pandas as pd
+import os
 
 def run_measurement():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     tesseract_config = r'--psm 3'
     start_time = datetime.datetime.now()
@@ -73,6 +73,36 @@ def generate_order():
     return ['-'.join(order) for order in order_combinations]
 
 
+def match_output(output, parameter):
+    pattern = rf"{re.escape(parameter)}:\s*(\d+\.\d+)"
+    match = re.search(pattern, output)
+    number = None
+
+    if match:
+        number = match.group(1)
+        print(parameter, ':', number)
+    else:
+        print(parameter, 'not found')
+
+    return number
+
+
+def write_to_excel(parameters, values):
+    data = {parameters[i]: [values[i]] for i in range(len(parameters))}
+
+    df = pd.DataFrame(data)
+
+    excel_file = 'measurements.xlsx'
+
+    if os.path.exists(excel_file):
+        with pd.ExcelWriter(excel_file, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+            # Write DataFrame to an existing Excel file
+            df.to_excel(writer, startrow=writer.sheets['Sheet1'].max_row, index=False, 
+                        sheet_name='Sheet1', header= False)
+    else:
+        df.to_excel(excel_file, index=False)
+
+
 def run_command(first_partitioning, second_partitioning, order):
     command = f"adb shell 'export LD_LIBRARY_PATH=/data/local/Working_dir; " \
               f"/data/local/Working_dir/graph_alexnet_all_pipe_sync --threads=4 " \
@@ -81,7 +111,13 @@ def run_command(first_partitioning, second_partitioning, order):
 
     print(command)
 
+    parameters = ['stage1_input_time', 'stage1_inference_time', 'stage1_total_time',
+                  'stage2_input_time', 'stage2_inference_time', 'stage2_total_time',
+                  'stage3_input_time', 'stage3_inference_time', 'stage3_total_time',
+                  'Frame rate is', 'Frame latency is']
+
     subproc = pexpect.spawn(command, timeout=None, encoding='utf-8')
+    values = [first_partitioning, second_partitioning, order]
 
     while True:
         try:
@@ -90,31 +126,32 @@ def run_command(first_partitioning, second_partitioning, order):
             sys.exit(0)
 
         if index == 0:  # EOF
-            print(subproc.before)
+            output = subproc.before
+            print(output)
+
+            for param in parameters:
+                values.append(match_output(output, param))
+
+            write_to_excel(['partition point 1', 'partition point 2', 'order', 'power'] 
+                           + parameters, values)
+
             break
         elif index == 2:  # "Running Inference"
             print("Running Inference")
+            # run_measurement()
+            # Watt used.
+            values.append(0)
 
     subproc.close()
 
-    return command
 
 if __name__ == "__main__":
     # All commands that need to be run in the shell here.
 
     order_combinations = generate_order()
 
-    run_command(3, 6, 'B-L-G')
-
     # Execute commands for all combinations of partitioning points 
     # and hardware orders.
     for first_point, second_point in generate_partitions():
         for order in order_combinations:
-            pass
-
-        # While loop inside waiting for "Running Inference"
-
-        # If run inference, then start run_measurement()
-
-        # Store the results sufficiently for later processing.
-        #print(run_measurement())
+            run_command(first_point, second_point, order)
