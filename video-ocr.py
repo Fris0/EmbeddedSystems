@@ -10,16 +10,16 @@ import pandas as pd
 import os
 
 def run_measurement():
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     tesseract_config = r'--psm 3'
     start_time = datetime.datetime.now()
 
     measurements = []
-    while ((datetime.datetime.now() - start_time).total_seconds() < 4):
+    while ((datetime.datetime.now() - start_time).total_seconds() < 6):
         # Read in the frame.
         ret, frame = cap.read()
-
+        cv2.startWindowThread()
         # Frame pre-processing.
         gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY_INV)
@@ -30,19 +30,18 @@ def run_measurement():
         roi = frame[y:y+h, x:x+w]
 
         # Calculate the skew matrix.
-        skew_matrix = np.float32([[1, -0.4, 0], [0, 1, 0]])  # -0.4 is the skew-factor.
+        skew_matrix = np.float32([[1, -0.1, 0], [0, 1, 0]])  # -0.4 is the skew-factor.
 
         # Apply the skew transformation.
         skewed_image = cv2.warpAffine(roi, skew_matrix, (roi.shape[1], roi.shape[0]), borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
 
         # Crop the image to the appropiate size.
-        skewed_image = gaussian_filter(skewed_image, sigma = 2)[685:740, 710:830]
+        skewed_image = gaussian_filter(skewed_image, sigma = 1)[509:552, 828:915]
+
 
         text = pytesseract.image_to_string(skewed_image)
         try:
-            result = float(text)
-            measurements.append(result)
-            print(result)
+            measurements.append(float(text))
         except:
             pass
 
@@ -60,8 +59,8 @@ def run_measurement():
 
 def generate_partitions():
     total_layers = 8
-    for i in range(1, total_layers + 1):
-        for j in range(i, total_layers + 1):
+    for i in range(1, total_layers):
+        for j in range(i, total_layers):
             yield (i, j)
 
 
@@ -138,9 +137,8 @@ def run_command(first_partitioning, second_partitioning, order):
             break
         elif index == 2:  # "Running Inference"
             print("Running Inference")
-            # run_measurement()
             # Watt used.
-            values.append(0)
+            values.append(run_measurement())
 
     subproc.close()
 
