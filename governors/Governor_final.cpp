@@ -1,5 +1,5 @@
 
-/* Program: Governor_ver2.cpp
+/* Program: Governor_final.cpp
  * Authors: Z. Li (SN: 14070308) and M.F. Jansen (SN: 13385569)
  *
  * Summary:
@@ -11,12 +11,12 @@
  * 
  * Instructions to Run
  * On Your Computer:
- * arm-linux-androideabi-clang++ -static-libstdc++ Governor_ver2.cpp PID_controller.cpp frequency_scaling.cpp -o Governor_ver2
- * adb push Governor_ver2 /data/local/Working_dir
+ * arm-linux-androideabi-clang++ -static-libstdc++ Governor_final.cpp PID_controller.cpp frequency_scaling.cpp -o Governor_final
+ * adb push Governor_final /data/local/Working_dir
  *
  * On the Board:
- * chmod +x Governor_ver2
- * ./Governor_ver2 graph_alexnet_all_pipe_sync #NumberOFPartitions #TargetFPS #TargetLatency
+ * chmod +x Governor_final
+ * ./Governor_final graph_alexnet_all_pipe_sync #NumberOFPartitions #TargetFPS #TargetLatency
 */
 
 #include <stdio.h>
