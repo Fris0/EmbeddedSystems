@@ -1,14 +1,26 @@
-/*Instructions to Run
-On Your Computer:
-	arm-linux-androideabi-clang++ -static-libstdc++ Governor_ver2.cpp PID_controller.cpp frequency_scaling.cpp -o Governor_ver2
-	adb push Governor_ver2 /data/local/Working_dir
-On the Board:
-	chmod +x Governor_ver2
-	./Governor_ver2 graph_alexnet_all_pipe_sync #NumberOFPartitions #TargetFPS #TargetLatency
+
+/* Program: Governor_ver2.cpp
+ * Authors: Z. Li (SN: 14070308) and M.F. Jansen (SN: 13385569)
+ *
+ * Summary:
+ * This program functions as a Governor for the Khadas VIM3 board. 
+ * The Governor is designed to work as a Proportional Integral Derivative Controller with
+ * as goal to reduce the Power Consumption and meeting the Latency and FPS goals set by the user.
+ * It achieves this by distributing the layers with the PipeALL library and 
+ * increasing/reducing the frequencies of the CPU components.
+ * 
+ * Instructions to Run
+ * On Your Computer:
+ * arm-linux-androideabi-clang++ -static-libstdc++ Governor_ver2.cpp PID_controller.cpp frequency_scaling.cpp -o Governor_ver2
+ * adb push Governor_ver2 /data/local/Working_dir
+ *
+ * On the Board:
+ * chmod +x Governor_ver2
+ * ./Governor_ver2 graph_alexnet_all_pipe_sync #NumberOFPartitions #TargetFPS #TargetLatency
 */
 
-#include <stdio.h>	/* printf */
-#include <stdlib.h> /* system, NULL, EXIT_FAILURE */
+#include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -23,7 +35,6 @@ int LittleFrequencyCounter = 0;
 int BigFrequencyCounter = 0;
 
 int MaxLittleFrequencyCounter = 8;
-// Only the first 9 frequencies give increasing performance.
 int MaxBigFrequencyCounter = 8;
 
 bool LatencyCondition = 0;
@@ -41,11 +52,19 @@ int Target_Latency = 0;
 float Actual_FPS = 0;
 float Actual_Latency = 0;
 
+// PID controller gain components.
 float K_P = 2.0;
 float K_I = 0.0;
 float K_D = 0.08;
 
-/* Get feedback by parsing the results */
+
+/* Parse the results from the output.txt file and
+ * store values in the Global Variables.
+ *
+ * Output: None
+ * Side-effect: Print parsed values to standard output,
+ * 				and store new values in global variables. 
+*/
 void ParseResults()
 {
 	ifstream myfile("output.txt");
@@ -167,9 +186,21 @@ void ParseResults()
 	}
 }
 
+/* Reduce the Big and Lil frequencies until diminishing returns.
+ *
+ * Graph: String that contains the CNN to be used.
+ * N_Frames: Number of frames to be proccesed by CNN.
+ * PartitionPoint1: Partitionpoint for first stage.
+ * PartitionPoint2:Partitionpoint for second stage.
+ * Order: Order of the three processing units Lil, Big cpu and GPU.
+ * 
+ * Output: None
+ * Side-effects: Change the frequencies in Khadas through shell,
+ *               print information to standard output, and call
+ *               the parse function.
+*/
 void optimize_frequency(string graph, int N_Frames, int PartitionPoint1, int PartitionPoint2, string Order)
 {
-	// Reduce big CPU frequency.
 	while (true)
 	{
 		if (BigFrequencyCounter > 0)
@@ -190,10 +221,9 @@ void optimize_frequency(string graph, int N_Frames, int PartitionPoint1, int Par
 			break;
 		}
 
+        // Return to previous frequency when reduction caused negative effects.
 		if (!FPSCondition || !LatencyCondition)
 		{
-			// Set the big CPU frequency back to where it satisfies
-			// performance requirements.
 			BigFrequencyCounter += 1;
 			FPSCondition = 1;
 			LatencyCondition = 1;
@@ -201,7 +231,6 @@ void optimize_frequency(string graph, int N_Frames, int PartitionPoint1, int Par
 		}
 	}
 
-	// Reduce little CPU frequency.
 	while (true)
 	{
 		if (LittleFrequencyCounter > 0)
@@ -222,10 +251,9 @@ void optimize_frequency(string graph, int N_Frames, int PartitionPoint1, int Par
 			break;
 		}
 
+        // Return to previous frequency when reduction caused negative effects.
 		if (!FPSCondition || !LatencyCondition)
 		{
-			// Set the little CPU frequency back to where it satisfies
-			// performance requirements.
 			LittleFrequencyCounter += 1;
 			FPSCondition = 1;
 			LatencyCondition = 1;
@@ -234,6 +262,19 @@ void optimize_frequency(string graph, int N_Frames, int PartitionPoint1, int Par
 	}
 }
 
+/* Run the sequential steps of the Governor design to obtain the optimal
+ * PipeALL configuration.
+ *
+ * argc: Count of arguments sent through command line.
+ * argv: The actual argument strings.
+ * 
+ * Output: 0, to conclude and define the end of the program.
+ *
+ * Side-effects: Run commands in the systems command-line
+ *               for testing and changing the configuration,
+ *               printing intermediate values, and change
+ *               the global values.
+*/
 int main(int argc, char *argv[])
 {
 	if (argc < 5)
@@ -269,10 +310,10 @@ int main(int argc, char *argv[])
 	system(Command.c_str());
 
 	int N_Frames = 10;
-	/* Start with running the partition which splits the convolutional and fully-connected layer. */
 	int PartitionPoint1 = 1;
 	int PartitionPoint2 = 1;
 	string Order = "B-G-L";
+
 	while (true)
 	{
 		char Run_Command[150];
@@ -282,7 +323,7 @@ int main(int argc, char *argv[])
 		ParseResults();
 
 		if (FPSCondition && LatencyCondition)
-		{ // Both Latency and Throughput Requirements are Met.
+		{
 			printf("Temporary solution Was Found.\n TargetBigFrequency:%d \t TargetLittleFrequency:%d \t PartitionPoint1:%d \t PartitionPoint2:%d \t Order:%s\n",
 				   BigFrequencyTable[BigFrequencyCounter], LittleFrequencyTable[LittleFrequencyCounter], PartitionPoint1, PartitionPoint2, Order.c_str());
 			printf("Now trying to reduce frequency.\n\n");
@@ -294,8 +335,11 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
+			// Create aggregated value for the desired and actual values.
 			float desired_value = !FPSCondition * (1.0 / Target_FPS * 1000) + !LatencyCondition * Target_Latency;
 			float actual_value = !FPSCondition * (1.0 / Actual_FPS * 1000) + !LatencyCondition * Actual_Latency;
+
+			// Calculate the Controller Output with the Aggregated values.
 			float controller_out = controller_output(desired_value, actual_value, Actual_Latency, K_P, K_I, K_D);
 			printf("Partition: %i, %i\n", PartitionPoint1, PartitionPoint2);
 			printf("Desired value: %f, Actual value: %f\n", desired_value, actual_value);

@@ -3,6 +3,16 @@
 float error_prior = 0;
 float integral_prior = 0;
 
+/* Calculate Controller Ouput and return the solution.
+ *
+ * desired: Desired value in int.
+ * actual: Measured value in int.
+ * iteration_time: Latency for proccesing a frame in float.
+ * Kp, Ki, Kd: The gain values set in the Governor.
+ * 
+ * Output: A float which indicates the change required by the
+ *         actuator.
+*/
 float controller_output(float desired, float actual, float iteration_time,
                         float K_P, float K_I, float K_D)
 {
