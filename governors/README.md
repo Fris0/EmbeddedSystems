@@ -20,10 +20,7 @@ If the target device is android you need to cross compile it using clang++ in li
 $ arm-linux-androideabi-clang++ Governor_final.cpp PID_controller.cpp frequency_scaling.cpp -o Governor_final
 $ adb push Governor_final dir_inside_bord/
 ```
-The *Build_CPP.sh* script sets the path, compiles the governor and push it into the android device:
-```
-$ ./Build_CPP.sh Governor.cpp
-```
+
 You need to define Android-NDK path in your machine into the *Android-NDK* variable and also change the path in your android device based on your desire. 
 
 
