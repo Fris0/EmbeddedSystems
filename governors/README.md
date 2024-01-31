@@ -1,4 +1,4 @@
-# Governor_Demo
+# Governor_final
 This is a simple performance aware governor works with Pipe-All framework. In addition to frequency settings of CPU clusters, partitioning the 
 CNN into pipeline stages and mapping stages into GPU, CPU big and CPU Little clusters in Pipe-All framework, affects the performance, power and 
 energy consumption of the device. This basic governor explore design points and tries to find the design point that met the target FPS and latency
