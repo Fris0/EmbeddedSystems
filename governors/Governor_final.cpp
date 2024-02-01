@@ -367,6 +367,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
+					/* Partitioning logic as reported */
 					if (StageTwoInferenceTime < StageThreeInferenceTime)
 					{
 						if (PartitionPoint2 < partitions)
@@ -395,6 +396,7 @@ int main(int argc, char *argv[])
 						}
 					}
 					else {
+
 						if (PartitionPoint2 > PartitionPoint1) 
 						{
 							PartitionPoint2 -= 1;
