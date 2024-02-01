@@ -367,6 +367,12 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
+					/* Reached the end of partitions */
+					if (PartitionPoint2 == partitions - 1)
+					{
+						printf("No Solution Found\n");
+						break;
+					}
 					/* Partitioning logic as reported */
 					if (StageTwoInferenceTime < StageThreeInferenceTime)
 					{
@@ -388,23 +394,6 @@ int main(int argc, char *argv[])
 						{
 							PartitionPoint1 += 1;
 							printf("Increasing the Size of Pipeline Partition 1\n");
-						}
-						else
-						{
-							printf("No Solution Found\n");
-							break;
-						}
-					}
-					else {
-
-						if (PartitionPoint2 > PartitionPoint1) 
-						{
-							PartitionPoint2 -= 1;
-						}
-						else if (PartitionPoint1 > 1)
-						{
-							PartitionPoint1 -= 1;
-							PartitionPoint2 -= 1;
 						}
 						else
 						{
