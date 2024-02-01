@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 				else
 				{
 					/* Reached the end of partitions */
-					if (PartitionPoint2 == partitions - 2 && PartitionPoint2 == partitions - 1)
+					if (PartitionPoint1 == partitions - 2 && PartitionPoint2 == partitions - 1)
 					{
 						printf("No Solution Found\n");
 						break;
