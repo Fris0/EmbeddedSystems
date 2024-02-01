@@ -394,6 +394,22 @@ int main(int argc, char *argv[])
 							break;
 						}
 					}
+					else {
+						if (PartitionPoint2 > PartitionPoint1) 
+						{
+							PartitionPoint2 -= 1;
+						}
+						else if (PartitionPoint1 > 1)
+						{
+							PartitionPoint1 -= 1;
+							PartitionPoint2 -= 1;
+						}
+						else
+						{
+							printf("No Solution Found\n");
+							break;
+						}
+					}
 				}
 			}
 		}
